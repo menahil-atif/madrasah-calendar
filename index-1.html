@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Study planner</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗓️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@300;400;600&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F6F7F5; --surface:#FFFFFF; --ink:#1D2826; --muted:#6A7672; --line:#DCE2DE; --soft:#EEF1EF;
+  --ok:#2E6A55; --warn:#B4483C; --accent:#2E6A55;
+  --serif:"Spectral",Georgia,"Times New Roman",serif;
+  --sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#141A19; --surface:#1B2321; --ink:#E5ECE9; --muted:#8E9B97; --line:#2C3634; --soft:#202927;
+    --ok:#5FAF90; --warn:#E07A6C; --accent:#5FAF90;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141A19; --surface:#1B2321; --ink:#E5ECE9; --muted:#8E9B97; --line:#2C3634; --soft:#202927;
+  --ok:#5FAF90; --warn:#E07A6C; --accent:#5FAF90;
+}
+*,*::before,*::after{box-sizing:inherit}
+[hidden]{display:none !important}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+main{max-width:1100px;margin:0 auto;padding:32px 20px 64px}
+h1{font-family:var(--serif);font-weight:400;font-size:1.25rem;margin:0;color:var(--muted)}
+h2{font-family:var(--serif);font-weight:400;font-size:1.3rem;margin:0 0 4px}
+.hint{color:var(--muted);font-size:.875rem;margin:0 0 12px}
+.muted{color:var(--muted)}
+
+.top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+.tabs{display:flex;gap:4px}
+.tabs button,.seg-toggle button{padding:7px 12px;border-color:transparent;background:transparent;color:var(--muted)}
+.tabs button[aria-selected=true],.seg-toggle button[aria-pressed=true]{color:var(--ink);border-color:var(--line);background:var(--surface)}
+
+button{font:inherit;font-weight:500;font-size:.9rem;border-radius:6px;padding:8px 13px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+button.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+button.danger{color:var(--warn)}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+textarea{width:100%;resize:vertical;min-height:84px;line-height:1.45}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+label.field{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted)}
+label.field > input,label.field > select{color:var(--ink)}
+
+/* overview */
+.overview{display:grid;grid-template-columns:minmax(200px,auto) 1fr;gap:28px 48px;padding-bottom:28px;border-bottom:1px solid var(--line);margin-bottom:24px}
+.countdown b{display:block;font-family:var(--serif);font-weight:300;font-size:clamp(3rem,10vw,5rem);line-height:1;letter-spacing:-.02em}
+.countdown span{color:var(--muted);font-size:.9rem}
+.countdown .mini{display:flex;gap:20px;margin-top:16px;font-size:.85rem;color:var(--muted)}
+.countdown .mini strong{display:block;font-family:var(--serif);font-weight:400;font-size:1.3rem;color:var(--ink)}
+.subrows{display:flex;flex-direction:column;gap:12px;align-self:center}
+.subrow{display:grid;grid-template-columns:9rem 1fr 7.5rem;gap:12px;align-items:center;font-size:.9rem}
+.subrow .nm{display:flex;align-items:center;gap:8px;font-weight:500}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--c);flex:none}
+.bar{height:6px;background:var(--soft);border-radius:3px;overflow:hidden;display:flex}
+.bar i{display:block;height:100%;background:var(--c)}
+.bar i.plan{background:color-mix(in srgb,var(--c) 30%,transparent)}
+.subrow .st{font-size:.8rem;text-align:right}
+.subrow .sub-detail{grid-column:2/4;font-size:.8rem;color:var(--muted);margin-top:-8px}
+.ok{color:var(--ok)} .warn{color:var(--warn)}
+
+/* calendar bar */
+.calbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.calbar .label{font-family:var(--serif);font-size:1.35rem;min-width:9.5rem;text-align:center}
+.calbar .sp{flex:1}
+.seg-toggle{display:flex;gap:4px}
+.chk-inline{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted)}
+
+/* month */
+.month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border-top:1px solid var(--line);border-left:1px solid var(--line)}
+.dow{font-size:.75rem;color:var(--muted);padding:6px 8px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--bg)}
+.cell{min-height:104px;padding:6px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--surface);cursor:pointer;display:flex;flex-direction:column;gap:3px;min-width:0}
+.cell.out{background:var(--bg)}
+.cell.out .num{opacity:.45}
+.cell.brk{background:repeating-linear-gradient(135deg,var(--soft) 0 6px,transparent 6px 12px),var(--surface)}
+.cell.over{outline:2px dashed var(--accent);outline-offset:-3px}
+.num{font-size:.8rem;color:var(--muted);display:flex;justify-content:space-between;gap:4px}
+.cell.today .num b{background:var(--ink);color:var(--bg);border-radius:10px;padding:0 6px}
+.num b{font-weight:500}
+.num em{font-style:normal;font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell.target .num em{color:var(--warn)}
+.chip{display:block;width:100%;text-align:left;font-size:.78rem;font-weight:500;padding:3px 6px;border-radius:4px;border:0;border-left:3px solid var(--c);background:color-mix(in srgb,var(--c) 14%,var(--surface));color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:grab}
+.chip sup{font-size:.7em;color:var(--muted);margin-left:3px}
+.chip.done{opacity:.55;text-decoration:line-through}
+.chip.flag{box-shadow:inset 0 0 0 1px var(--warn)}
+.chip .ab{display:none}
+.chip small{display:block;font-weight:400;font-size:.72rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+
+/* week */
+.weeks{display:flex;flex-direction:column;gap:20px}
+.week h3{font-family:var(--serif);font-weight:400;font-size:1.1rem;margin:0;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+.week h3 span{font-family:var(--sans);font-size:.8rem;color:var(--muted)}
+.week.current h3::after{content:"This week";font-family:var(--sans);font-size:.75rem;color:var(--accent);border:1px solid var(--accent);border-radius:10px;padding:0 8px}
+.wrow{display:grid;grid-template-columns:5.5rem 1fr auto auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.wrow:first-of-type{border-top:1px solid var(--line);margin-top:8px}
+.wrow .d{font-size:.85rem;color:var(--muted)}
+.wrow .what{min-width:0}
+.wrow .what b{font-weight:500;display:flex;align-items:center;gap:8px}
+.wrow .what small{display:block;color:var(--muted);font-size:.82rem;overflow:hidden;text-overflow:ellipsis}
+.wrow .len{font-size:.8rem;color:var(--muted);white-space:nowrap}
+.wrow.done .what{opacity:.55}
+.wrow input[type=checkbox],.dlg input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
+.wempty{color:var(--muted);font-size:.85rem;padding:10px 0;border-top:1px solid var(--line);margin-top:8px}
+
+/* subjects */
+.subjects{display:flex;flex-direction:column;gap:20px}
+.subj{border:1px solid var(--line);border-left:4px solid var(--c);border-radius:6px;background:var(--surface);padding:18px 20px}
+.subj-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.subj-head input[type=text]{font-family:var(--serif);font-size:1.2rem;border-color:transparent;padding:4px 6px;margin-left:-6px;flex:1;min-width:140px}
+.subj-head input[type=text]:hover{border-color:var(--line)}
+.subj-head input[type=color]{width:34px;height:30px;padding:2px;cursor:pointer}
+.kind{font-size:.8rem;color:var(--muted)}
+.subj-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 24px}
+.days{display:flex;gap:4px;flex-wrap:wrap}
+.days button{padding:6px 9px;font-size:.82rem;color:var(--muted)}
+.days button[aria-pressed=true]{background:var(--c);border-color:var(--c);color:#fff}
+.small{font-size:.8rem;color:var(--muted);margin-top:4px}
+.status{margin-top:14px;padding-top:14px;border-top:1px solid var(--line);font-size:.9rem}
+.status p{margin:0 0 4px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.addsub{display:flex;gap:8px;align-items:center;margin-top:20px;flex-wrap:wrap}
+
+/* setup */
+.setup{display:flex;flex-direction:column;gap:36px;max-width:680px}
+.row2{display:flex;gap:16px;flex-wrap:wrap}
+.brk-row{display:grid;grid-template-columns:auto auto 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:.9rem}
+.brk-add{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:12px}
+.msg{font-size:.85rem;color:var(--muted);min-height:1.4em;margin-top:8px}
+.sync{font-size:.78rem;color:var(--muted);display:inline-flex;align-items:center;gap:6px;margin-left:12px;font-family:var(--sans)}
+.sync::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.sync[data-s=ok]::before{background:var(--ok)} .sync[data-s=err]::before{background:var(--warn)}
+.sync[data-s=busy]::before{background:#B98A35}
+.steps{margin:0 0 12px;padding-left:1.2rem;font-size:.9rem;color:var(--muted)} .steps li{margin-bottom:4px}
+.steps a{color:var(--accent)}
+
+/* dialog */
+dialog.dlg{border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);padding:0;width:min(520px,calc(100vw - 24px));max-height:calc(100vh - 40px)}
+dialog.dlg::backdrop{background:rgba(20,26,25,.45)}
+.dlg-body{padding:22px;display:flex;flex-direction:column;gap:14px}
+.dlg-body h2{margin:0}
+.dlg-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.dlg-grid > label{min-width:0}
+.dlg-grid select,.dlg-grid input{width:100%;min-width:0}
+.topics{display:flex;flex-direction:column;gap:2px;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+.topics label{display:flex;gap:8px;align-items:center;font-size:.9rem;padding:3px 0;cursor:pointer}
+.topics label small{color:var(--muted);font-size:.78rem;margin-left:auto;white-space:nowrap}
+.addtopic{display:flex;gap:8px}
+.addtopic input{flex:1}
+.dlg-foot{display:flex;gap:8px;align-items:center;padding:14px 22px;border-top:1px solid var(--line);background:var(--bg)}
+.dlg-foot .sp{flex:1}
+.preview{font-size:.82rem;color:var(--muted)}
+.preview.bad{color:var(--warn)}
+
+@media (max-width:760px){
+  .overview{grid-template-columns:1fr}
+  .subrow{grid-template-columns:7rem 1fr 6.5rem}
+  .subj-grid{grid-template-columns:1fr}
+}
+@media (max-width:600px){
+  main{padding:20px 12px 48px}
+  .cell{min-height:72px;padding:3px}
+  .chip{padding:2px 3px;font-size:.7rem;border-left-width:2px}
+  .chip .nm{display:none} .chip .ab{display:inline} .chip sup,.chip small{display:none}
+  .num em{display:none}
+  .wrow{grid-template-columns:3.6rem 1fr auto}
+  .wrow .len{display:none}
+  .dlg-grid{grid-template-columns:1fr 1fr}
+  .dlg-grid label:first-child{grid-column:1/3}
+  .brk-row{grid-template-columns:1fr auto}
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <h1>Study planner<span class="sync" id="syncStatus" hidden></span></h1>
+    <div class="tabs" role="tablist">
+      <button role="tab" data-tab="calendar" aria-selected="true">Calendar</button>
+      <button role="tab" data-tab="subjects" aria-selected="false">Subjects</button>
+      <button role="tab" data-tab="setup" aria-selected="false">Setup</button>
+    </div>
+  </div>
+
+  <section id="tab-calendar">
+    <div class="overview" id="overview"></div>
+    <div class="calbar">
+      <div class="seg-toggle" role="group" aria-label="View">
+        <button data-view="month" aria-pressed="true">Month</button>
+        <button data-view="week" aria-pressed="false">Week</button>
+      </div>
+      <span class="sp"></span>
+      <div id="monthNav" style="display:flex;gap:6px;align-items:center">
+        <button class="ghost" id="prevM" aria-label="Previous month">‹</button>
+        <span class="label" id="mLabel"></span>
+        <button class="ghost" id="nextM" aria-label="Next month">›</button>
+        <button id="todayBtn">Today</button>
+      </div>
+      <label class="chk-inline" id="pastWrap" hidden><input type="checkbox" id="showPast"> Show past weeks</label>
+      <span class="sp"></span>
+      <button class="primary" id="addLessonBtn">Add lesson</button>
+    </div>
+    <div id="month"></div>
+    <div id="week" class="weeks" hidden></div>
+    <p class="hint" style="margin-top:12px" id="calHint">Click a day to add a lesson. Drag a lesson to move it.</p>
+  </section>
+
+  <section id="tab-subjects" hidden>
+    <div class="subjects" id="subjects"></div>
+    <div class="addsub">
+      <select id="newKind" aria-label="Type of subject">
+        <option value="topics">Tracked by topics</option>
+        <option value="quran">Tracked by ayahs</option>
+        <option value="calendar">Calendar only (not tracked)</option>
+      </select>
+      <button id="addSubBtn">Add subject</button>
+    </div>
+  </section>
+
+  <section id="tab-setup" hidden>
+    <div class="setup" id="setup"></div>
+  </section>
+</main>
+
+<dialog class="dlg" id="dlg">
+  <div class="dlg-body">
+    <h2 id="dlgTitle">Lesson</h2>
+    <div class="dlg-grid">
+      <label class="field">Date<input type="date" id="fDate"></label>
+      <label class="field">Subject<select id="fSub"></select></label>
+      <label class="field">Length<select id="fUnits">
+        <option value="1">Regular (1h30)</option>
+        <option value="2">Cram, 2 lessons (3h)</option>
+        <option value="3">Cram, 3 lessons (4h30)</option>
+        <option value="4">Cram, 4 lessons (6h)</option>
+      </select></label>
+    </div>
+    <div id="fContent"></div>
+    <label class="field">Notes<textarea id="fNote" rows="2" style="min-height:56px"></textarea></label>
+    <label class="chk-inline" style="color:var(--ink)"><input type="checkbox" id="fDone"> Lesson done</label>
+  </div>
+  <div class="dlg-foot">
+    <button class="danger ghost" id="dlgDelete">Delete</button>
+    <span class="sp"></span>
+    <button id="dlgCancel">Cancel</button>
+    <button class="primary" id="dlgSave">Save lesson</button>
+  </div>
+</dialog>
+
+<script>
+/* ================= data ================= */
+const SURAHS = [
+["Al-Fatihah",7],["Al-Baqarah",286],["Aal-Imran",200],["An-Nisa",176],["Al-Ma'idah",120],["Al-An'am",165],["Al-A'raf",206],["Al-Anfal",75],["At-Tawbah",129],["Yunus",109],
+["Hud",123],["Yusuf",111],["Ar-Ra'd",43],["Ibrahim",52],["Al-Hijr",99],["An-Nahl",128],["Al-Isra",111],["Al-Kahf",110],["Maryam",98],["Ta-Ha",135],
+["Al-Anbiya",112],["Al-Hajj",78],["Al-Mu'minun",118],["An-Nur",64],["Al-Furqan",77],["Ash-Shu'ara",227],["An-Naml",93],["Al-Qasas",88],["Al-Ankabut",69],["Ar-Rum",60],
+["Luqman",34],["As-Sajdah",30],["Al-Ahzab",73],["Saba",54],["Fatir",45],["Ya-Sin",83],["As-Saffat",182],["Sad",88],["Az-Zumar",75],["Ghafir",85],
+["Fussilat",54],["Ash-Shura",53],["Az-Zukhruf",89],["Ad-Dukhan",59],["Al-Jathiyah",37],["Al-Ahqaf",35],["Muhammad",38],["Al-Fath",29],["Al-Hujurat",18],["Qaf",45],
+["Adh-Dhariyat",60],["At-Tur",49],["An-Najm",62],["Al-Qamar",55],["Ar-Rahman",78],["Al-Waqi'ah",96],["Al-Hadid",29],["Al-Mujadilah",22],["Al-Hashr",24],["Al-Mumtahanah",13],
+["As-Saff",14],["Al-Jumu'ah",11],["Al-Munafiqun",11],["At-Taghabun",18],["At-Talaq",12],["At-Tahrim",12],["Al-Mulk",30],["Al-Qalam",52],["Al-Haqqah",52],["Al-Ma'arij",44],
+["Nuh",28],["Al-Jinn",28],["Al-Muzzammil",20],["Al-Muddaththir",56],["Al-Qiyamah",40],["Al-Insan",31],["Al-Mursalat",50],["An-Naba",40],["An-Nazi'at",46],["Abasa",42],
+["At-Takwir",29],["Al-Infitar",19],["Al-Mutaffifin",36],["Al-Inshiqaq",25],["Al-Buruj",22],["At-Tariq",17],["Al-A'la",19],["Al-Ghashiyah",26],["Al-Fajr",30],["Al-Balad",20],
+["Ash-Shams",15],["Al-Layl",21],["Ad-Duha",11],["Ash-Sharh",8],["At-Tin",8],["Al-Alaq",19],["Al-Qadr",5],["Al-Bayyinah",8],["Az-Zalzalah",8],["Al-Adiyat",11],
+["Al-Qari'ah",11],["At-Takathur",8],["Al-Asr",3],["Al-Humazah",9],["Al-Fil",5],["Quraysh",4],["Al-Ma'un",7],["Al-Kawthar",3],["Al-Kafirun",6],["An-Nasr",3],
+["Al-Masad",5],["Al-Ikhlas",4],["Al-Falaq",5],["An-Nas",6]
+];
+const KEY = "study-planner-v1";
+const COLORS = ["#2E6A55","#3D5F8C","#B98A35","#8A4F6E","#6B7A3A","#A4553F","#4F7F86"];
+const DOWS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const WEEK_ORDER = [1,2,3,4,5,6,0];
+
+/* ================= helpers ================= */
+const uid = () => Math.random().toString(36).slice(2,10);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad = n => String(n).padStart(2,"0");
+const ds = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const pd = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y,m-1,d); };
+const addDays = (s,n) => { const d = pd(s); d.setDate(d.getDate()+n); return ds(d); };
+const todayStr = () => ds(new Date());
+const dow = s => pd(s).getDay();
+const mondayOf = s => addDays(s, -((dow(s)+6)%7));
+const fmtD = (s,o) => pd(s).toLocaleDateString("en-GB", o);
+const daysBetween = (a,b) => Math.round((pd(b)-pd(a))/86400000);
+const hrs = units => { const m = units*90, h = Math.floor(m/60), r = m%60; return r ? `${h}h${r}` : `${h}h`; };
+const plural = (n,w,ws) => `${n} ${n===1 ? w : (ws || w+"s")}`;
+
+/* ================= state ================= */
+function newSubject(name, kind, color){
+  return { id:uid(), name, kind, color, days:[], expected:"", perLesson:"", targetText:"", topics:[], skip:[], notes:"" };
+}
+function defaultState(){
+  return {
+    settings:{ start: todayStr(), target:"" },
+    breaks:[],
+    subjects:[
+      newSubject("Quran","quran",COLORS[0]),
+      newSubject("Hadith","topics",COLORS[1]),
+      newSubject("Qasas","topics",COLORS[2]),
+      newSubject("Quduri","topics",COLORS[3]),
+      newSubject("Arabic grammar","topics",COLORS[4])
+    ],
+    lessons:[]
+  };
+}
+let state = defaultState();
+try {
+  const raw = localStorage.getItem(KEY);
+  if (raw){ const p = JSON.parse(raw); if (p && Array.isArray(p.subjects) && Array.isArray(p.lessons)) state = p; }
+} catch(e) {}
+function saveLocal(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e) {} }
+function save(){ state.updatedAt = Date.now(); saveLocal(); schedulePush(); }
+const subById = id => state.subjects.find(s => s.id === id);
+
+/* ================= quran ranges ================= */
+function parseQuran(str){
+  const ranges = [], bad = [];
+  (str||"").split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean).forEach(tok=>{
+    const t = tok.replace(/\s+/g,"").replace(/[–—]/g,"-");
+    let m = t.match(/^(\d+)(?:-(\d+))?$/);
+    if (m){
+      let a=+m[1], b=m[2]?+m[2]:a;
+      if (a<1 || b>114 || a>b){ bad.push(tok); return; }
+      for (let s=a; s<=b; s++) ranges.push({s, from:1, to:SURAHS[s-1][1]});
+      return;
+    }
+    m = t.match(/^(\d+):(\d+)(-(\d+|end)?)?$/i);
+    if (!m){ bad.push(tok); return; }
+    const s = +m[1];
+    if (s<1 || s>114){ bad.push(tok); return; }
+    const max = SURAHS[s-1][1], from = +m[2];
+    const to = m[3] ? (m[4] && m[4].toLowerCase()!=="end" ? +m[4] : max) : from;
+    if (from<1 || to>max || from>to){ bad.push(tok); return; }
+    ranges.push({s, from, to});
+  });
+  return {ranges, bad};
+}
+const fmtRanges = rs => rs.map(r => (r.from===1 && r.to===SURAHS[r.s-1][1]) ? `${r.s}` : `${r.s}:${r.from}-${r.to}`).join(", ");
+const nameRanges = rs => rs.map(r => (r.from===1 && r.to===SURAHS[r.s-1][1]) ? `${SURAHS[r.s-1][0]} (whole)` : `${SURAHS[r.s-1][0]} ${r.from}–${r.to}`).join(", ");
+function qKeys(rs){ const out=[]; rs.forEach(r=>{ for(let a=r.from;a<=r.to;a++) out.push(r.s*1000+a); }); return out; }
+function compress(keys){
+  const out=[];
+  keys.forEach(k=>{ const s=Math.floor(k/1000), a=k%1000, last=out[out.length-1];
+    if (last && last.s===s && last.to===a-1) last.to=a; else out.push({s,from:a,to:a}); });
+  return out;
+}
+const unique = arr => { const seen=new Set(); return arr.filter(x=> seen.has(x) ? false : (seen.add(x), true)); };
+
+/* ================= subject maths ================= */
+function itemKeys(sub, l){ if (sub.kind==="calendar") return []; return sub.kind==="quran" ? qKeys(l.items||[]) : (l.items||[]).filter(id=>sub.topics.some(t=>t.id===id)); }
+function unitWord(sub, n){ return sub.kind==="quran" ? plural(n,"ayah") : plural(n,"topic"); }
+function inBreak(d){ return state.breaks.find(b => d>=b.from && d<=b.to); }
+
+function info(sub){
+  const t = todayStr();
+  if (sub.kind==="calendar"){
+    const future = state.lessons.filter(l=>l.subjectId===sub.id && !l.done && l.date>=t);
+    return { target:[], done:0, remaining:[], unplanned:[], future, units:future.reduce((a,l)=>a+(+l.units||1),0), status:"Calendar only", cls:"muted", detail:[], planned:0 };
+  }
+  const ls = state.lessons.filter(l=>l.subjectId===sub.id);
+  const target = unique(sub.kind==="quran" ? qKeys(parseQuran(sub.targetText).ranges) : sub.topics.map(x=>x.id));
+  const doneSet = new Set(), planSet = new Set();
+  ls.forEach(l => itemKeys(sub,l).forEach(k => (l.done ? doneSet : (l.date>=t ? planSet : null))?.add(k)));
+  const done = target.filter(k=>doneSet.has(k)).length;
+  const remaining = target.filter(k=>!doneSet.has(k));
+  const unplanned = remaining.filter(k=>!planSet.has(k));
+  const future = ls.filter(l=>!l.done && l.date>=t).sort((a,b)=>a.date.localeCompare(b.date));
+  const units = future.reduce((a,l)=>a+(+l.units||1),0);
+  const overdue = ls.filter(l=>!l.done && l.date<t).length;
+  const p = parseFloat(sub.perLesson);
+  let status = "", cls = "muted", detail = [];
+  if (!target.length){ status = "No target set"; detail.push(sub.kind==="quran" ? "List the target ayahs in Subjects to see progress." : "List the target topics in Subjects to see progress."); }
+  else if (!remaining.length){ status = "All done"; cls = "ok"; }
+  else if (!units){ status = "Nothing scheduled"; cls = "warn"; detail.push(`${unitWord(sub, remaining.length)} left with no upcoming lessons.`); }
+  else {
+    const need = remaining.length/units;
+    const unitN = sub.kind==="quran" ? "ayah" : "topic";
+    detail.push(need<1 ? `Needs about 1 ${unitN} every ${Math.max(1,Math.floor(1/need))} regular lessons.` : `Needs about ${need<10 ? +need.toFixed(1) : Math.ceil(need)} ${unitN}s per regular lesson.`);
+    if (p>0){
+      const cap = p*units;
+      if (cap >= remaining.length){
+        const spare = Math.floor((cap-remaining.length)/p);
+        status = "On track"; cls = "ok";
+        detail.push(`At your usual ${p} per lesson you'd finish with ${plural(spare,"lesson")} to spare.`);
+      } else {
+        const short = Math.ceil((remaining.length-cap)/p);
+        status = `Short by ${plural(short,"lesson")}`; cls = "warn";
+        detail.push(`At your usual ${p} per lesson you need ${plural(short,"more lesson")} (${hrs(short)}) of cram time.`);
+      }
+    } else status = `${unitWord(sub, remaining.length)} left`;
+  }
+  if (unplanned.length && units) detail.push(`${unitWord(sub, unplanned.length)} not yet assigned to a lesson.`);
+  if (overdue) detail.push(`${plural(overdue,"past lesson")} not marked done.`);
+  const exp = parseInt(sub.expected);
+  if (exp>0 && exp!==future.length) detail.push(`You expect ${exp} lessons left; ${future.length} are scheduled.`);
+  return { target, done, remaining, unplanned, future, units, status, cls, detail, planned: target.filter(k=>planSet.has(k)&&!doneSet.has(k)).length };
+}
+
+/* ================= actions ================= */
+function noteSkip(l){
+  const sub = subById(l.subjectId);
+  if (sub && sub.days.includes(dow(l.date))){ sub.skip = sub.skip||[]; if (!sub.skip.includes(l.date)) sub.skip.push(l.date); }
+}
+function generate(sub){
+  const {start, target} = state.settings;
+  if (!sub.days.length) return "Pick the weekdays this subject runs on first.";
+  if (!target) return "Set a target date in Setup first.";
+  let d = start && start>todayStr() ? start : todayStr(), n = 0;
+  while (d <= target){
+    if (sub.days.includes(dow(d)) && !inBreak(d) && !(sub.skip||[]).includes(d) && !state.lessons.some(l=>l.subjectId===sub.id && l.date===d)){
+      state.lessons.push({id:uid(), date:d, subjectId:sub.id, units:1, items:[], note:"", done:false}); n++;
+    }
+    d = addDays(d,1);
+  }
+  save(); renderAll();
+  return n ? `Added ${plural(n,"lesson")} up to ${fmtD(target,{day:"numeric",month:"short",year:"numeric"})}.` : "No new lessons to add. Every weekly day up to the target already has one.";
+}
+function plan(sub, mode){
+  const inf = info(sub);
+  if (!inf.target.length) return "Add target content first.";
+  if (!inf.future.length) return "There are no upcoming lessons to plan into.";
+  const p = parseFloat(sub.perLesson);
+  if (mode==="pace" && !(p>0)) return "Enter your usual amount per lesson first.";
+  if (!confirm(`This replaces the planned content in ${plural(inf.future.length,"upcoming "+sub.name+" lesson")}. Continue?`)) return "";
+  const content = inf.remaining, U = inf.units;
+  const wOf = k => sub.kind==="topics" ? (+(sub.topics.find(t=>t.id===k)||{}).weight || 1) : 1;
+  const W = content.reduce((a,k)=>a+wOf(k),0);
+  let idx = 0, cum = 0, acc = 0;
+  inf.future.forEach((l,li)=>{
+    cum += (+l.units||1);
+    let slice;
+    if (mode==="even"){
+      const goal = W*cum/U, last = li===inf.future.length-1; slice = [];
+      while (idx<content.length){ const w = wOf(content[idx]); if (last || acc + w/2 <= goal){ slice.push(content[idx]); acc += w; idx++; } else break; }
+    } else { const end = Math.min(content.length, idx + Math.round(p*(+l.units||1))); slice = content.slice(idx,end); idx = end; }
+    l.items = sub.kind==="quran" ? compress(slice) : slice;
+  });
+  save(); renderAll();
+  const left = content.length - idx, used = inf.future.filter(l=>l.items.length).length;
+  return left ? `Planned up to the last lesson. ${unitWord(sub,left)} didn't fit, so add cram time or more lessons.` : `Planned ${unitWord(sub,content.length)} across ${plural(used,"lesson")}${used<inf.future.length?`, leaving ${plural(inf.future.length-used,"lesson")} with nothing assigned`:""}.`;
+}
+function clearUpcoming(sub){
+  const t = todayStr(), n = state.lessons.filter(l=>l.subjectId===sub.id && !l.done && l.date>=t).length;
+  if (!n) return "No upcoming lessons to remove.";
+  if (!confirm(`Remove all ${n} upcoming ${sub.name} lessons that aren't marked done?`)) return "";
+  state.lessons = state.lessons.filter(l=>!(l.subjectId===sub.id && !l.done && l.date>=t));
+  sub.skip = [];
+  save(); renderAll();
+  return `Removed ${plural(n,"lesson")}.`;
+}
+
+/* ================= tabs & view ================= */
+let tab = "calendar", view = "month";
+let vm = (()=>{ const d=new Date(); return [d.getFullYear(), d.getMonth()]; })();
+document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",()=>{
+  tab = b.dataset.tab;
+  document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected", x===b));
+  ["calendar","subjects","setup"].forEach(t=>document.getElementById("tab-"+t).hidden = t!==tab);
+  renderAll();
+}));
+document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{
+  view = b.dataset.view;
+  document.querySelectorAll("[data-view]").forEach(x=>x.setAttribute("aria-pressed", x===b));
+  renderCalendar();
+  if (view==="week"){ const cur=document.querySelector(".week.current"); if (cur) cur.scrollIntoView({block:"start"}); }
+}));
+document.getElementById("prevM").onclick = ()=>{ vm = vm[1]===0 ? [vm[0]-1,11] : [vm[0],vm[1]-1]; renderCalendar(); };
+document.getElementById("nextM").onclick = ()=>{ vm = vm[1]===11 ? [vm[0]+1,0] : [vm[0],vm[1]+1]; renderCalendar(); };
+document.getElementById("todayBtn").onclick = ()=>{ const d=new Date(); vm=[d.getFullYear(), d.getMonth()]; renderCalendar(); };
+document.getElementById("showPast").onchange = renderCalendar;
+document.getElementById("addLessonBtn").onclick = ()=>openLesson(null, todayStr());
+
+/* ================= overview ================= */
+function renderOverview(){
+  const t = todayStr(), tgt = state.settings.target;
+  const up = state.lessons.filter(l=>!l.done && l.date>=t);
+  const doneN = state.lessons.filter(l=>l.done).length;
+  const left = tgt ? daysBetween(t,tgt) : null;
+  const rows = state.subjects.map(sub=>{
+    const inf = info(sub), n = inf.target.length || 1;
+    return `<div class="subrow" style="--c:${esc(sub.color)}">
+      <span class="nm"><span class="dot"></span>${esc(sub.name)}</span>
+      <div class="bar" title="${inf.done} done, ${inf.planned} planned, of ${inf.target.length}"><i style="width:${inf.done/n*100}%"></i><i class="plan" style="width:${inf.planned/n*100}%"></i></div>
+      <span class="st ${inf.cls}">${esc(inf.status)}</span>
+      <span class="sub-detail">${inf.target.length ? `${inf.done} of ${unitWord(sub,inf.target.length)} done, ${plural(inf.future.length,"lesson")} ahead` : sub.kind==="calendar" ? `${plural(inf.future.length,"lesson")} ahead` : esc(inf.detail[0]||"")}</span>
+    </div>`;
+  }).join("");
+  document.getElementById("overview").innerHTML = `
+    <div class="countdown">
+      ${tgt ? `<b>${left>=0 ? left : 0}</b><span>${left===1?"day":"days"} until ${fmtD(tgt,{day:"numeric",month:"long",year:"numeric"})}</span>`
+            : `<b>–</b><span>Set a target date in Setup</span>`}
+      <div class="mini">
+        <div><strong>${up.length}</strong>lessons ahead</div>
+        <div><strong>${hrs(up.reduce((a,l)=>a+(+l.units||1),0))}</strong>scheduled</div>
+        <div><strong>${doneN}</strong>done</div>
+      </div>
+    </div>
+    <div class="subrows">${rows}</div>`;
+}
+
+/* ================= calendar ================= */
+function chipHTML(l){
+  const sub = subById(l.subjectId); if (!sub) return "";
+  const sum = lessonSummary(l, sub);
+  const flag = inBreak(l.date) ? " flag" : "";
+  const title = `${sub.name}${l.units>1?` (cram, ${hrs(l.units)})`:""}${sum?": "+sum:""}${flag?" — falls in a break":""}`;
+  return `<button class="chip${l.done?" done":""}${flag}" draggable="true" data-id="${l.id}" style="--c:${esc(sub.color)}" title="${esc(title)}"><span class="nm">${esc(sub.name)}</span><span class="ab">${esc(sub.name.slice(0,3))}</span>${l.units>1?`<sup>×${l.units}</sup>`:""}${sum?`<small>${esc(shortSum(l,sub))}</small>`:""}</button>`;
+}
+function shortSum(l, sub){
+  if (sub.kind==="quran") return (l.items||[]).map(r=>`${SURAHS[r.s-1][0].replace(/^(Al|An|Ar|As|At|Ash|Ad|Adh|Az|Aal)-/,"")} ${r.from}–${r.to}`).join(", ");
+  return lessonSummary(l, sub);
+}
+function lessonSummary(l, sub){
+  sub = sub || subById(l.subjectId); if (!sub || sub.kind==="calendar") return "";
+  if (sub.kind==="quran"){ const n = qKeys(l.items||[]).length; return n ? `${nameRanges(l.items)} (${n} ayahs)` : ""; }
+  return (l.items||[]).map(id=>sub.topics.find(t=>t.id===id)?.title).filter(Boolean).join(", ");
+}
+const sortLessons = arr => arr.sort((a,b)=> a.date.localeCompare(b.date) || state.subjects.findIndex(s=>s.id===a.subjectId) - state.subjects.findIndex(s=>s.id===b.subjectId));
+
+function renderCalendar(){
+  const isMonth = view==="month";
+  document.getElementById("month").hidden = !isMonth;
+  document.getElementById("week").hidden = isMonth;
+  document.getElementById("monthNav").style.display = isMonth ? "flex" : "none";
+  document.getElementById("pastWrap").hidden = isMonth;
+  document.getElementById("calHint").textContent = isMonth ? "Click a day to add a lesson. Drag a lesson to move it." : "Click a lesson to edit it. Tick the box when it's done.";
+  isMonth ? renderMonth() : renderWeek();
+}
+function renderMonth(){
+  const [y,m] = vm, first = ds(new Date(y,m,1)), dim = new Date(y,m+1,0).getDate();
+  const offset = (dow(first)+6)%7, weeks = Math.ceil((offset+dim)/7), start = addDays(first,-offset);
+  document.getElementById("mLabel").textContent = new Date(y,m,1).toLocaleDateString("en-GB",{month:"long",year:"numeric"});
+  const t = todayStr(), tgt = state.settings.target;
+  let html = WEEK_ORDER.map(d=>`<div class="dow">${DOWS[d]}</div>`).join("");
+  for (let i=0;i<weeks*7;i++){
+    const d = addDays(start,i), b = inBreak(d);
+    const cls = ["cell", pd(d).getMonth()!==m?"out":"", d===t?"today":"", b?"brk":"", d===tgt?"target":""].filter(Boolean).join(" ");
+    const ls = sortLessons(state.lessons.filter(l=>l.date===d));
+    const tag = d===tgt ? "Target" : (b && (d===b.from || dow(d)===1) ? b.label||"Break" : "");
+    html += `<div class="${cls}" data-date="${d}"><div class="num"><b>${pd(d).getDate()}</b>${tag?`<em>${esc(tag)}</em>`:""}</div>${ls.map(chipHTML).join("")}</div>`;
+  }
+  const el = document.getElementById("month"); el.className = "month"; el.innerHTML = html;
+}
+function renderWeek(){
+  const t = todayStr(), past = document.getElementById("showPast").checked;
+  const dates = state.lessons.map(l=>l.date).sort();
+  let from = [state.settings.start||t, dates[0]||t, t].sort()[0];
+  if (!past) from = t;
+  const to = [state.settings.target||t, dates[dates.length-1]||t, addDays(t,28)].sort().pop();
+  let w = mondayOf(from), html = "", curW = mondayOf(t);
+  while (w <= to){
+    const end = addDays(w,6);
+    const ls = sortLessons(state.lessons.filter(l=>l.date>=w && l.date<=end));
+    const brks = state.breaks.filter(b=>b.from<=end && b.to>=w);
+    const units = ls.reduce((a,l)=>a+(+l.units||1),0);
+    html += `<div class="week${w===curW?" current":""}">
+      <h3>Week of ${fmtD(w,{day:"numeric",month:"short",year:"numeric"})}<span>${ls.length?`${plural(ls.length,"lesson")}, ${hrs(units)}`:""}</span>${brks.length?`<span class="warn">${brks.map(b=>esc(b.label||"Break")).join(", ")}</span>`:""}</h3>
+      ${ls.length ? ls.map(l=>{ const sub=subById(l.subjectId); if(!sub) return ""; const sum=lessonSummary(l,sub);
+        return `<div class="wrow${l.done?" done":""}" data-id="${l.id}" style="--c:${esc(sub.color)}">
+          <span class="d">${fmtD(l.date,{weekday:"short",day:"numeric"})}</span>
+          <div class="what"><b><span class="dot"></span>${esc(sub.name)}${l.units>1?` <span class="muted" style="font-weight:400;font-size:.8rem">cram</span>`:""}</b><small>${esc(sum || "No content planned yet")}${l.note?` · ${esc(l.note)}`:""}</small></div>
+          <span class="len">${hrs(+l.units||1)}</span>
+          <input type="checkbox" ${l.done?"checked":""} aria-label="Mark ${esc(sub.name)} on ${fmtD(l.date,{day:"numeric",month:"short"})} done">
+        </div>`; }).join("")
+      : `<div class="wempty">${brks.length ? "No lessons, break week." : "No lessons this week."}</div>`}
+    </div>`;
+    w = addDays(w,7);
+  }
+  document.getElementById("week").innerHTML = html || `<p class="muted">Set a target date in Setup, then add lessons in Subjects.</p>`;
+}
+
+/* calendar interactions */
+const monthEl = document.getElementById("month");
+monthEl.addEventListener("click", e=>{
+  const chip = e.target.closest(".chip");
+  if (chip) return openLesson(state.lessons.find(l=>l.id===chip.dataset.id));
+  const cell = e.target.closest(".cell"); if (cell) openLesson(null, cell.dataset.date);
+});
+monthEl.addEventListener("dragstart", e=>{ const c=e.target.closest(".chip"); if (c){ e.dataTransfer.setData("text/plain", c.dataset.id); e.dataTransfer.effectAllowed="move"; }});
+monthEl.addEventListener("dragover", e=>{ const cell=e.target.closest(".cell"); if (cell){ e.preventDefault(); monthEl.querySelectorAll(".over").forEach(x=>x!==cell&&x.classList.remove("over")); cell.classList.add("over"); }});
+monthEl.addEventListener("dragleave", e=>{ const cell=e.target.closest(".cell"); if (cell && !cell.contains(e.relatedTarget)) cell.classList.remove("over"); });
+monthEl.addEventListener("drop", e=>{
+  const cell = e.target.closest(".cell"); if (!cell) return; e.preventDefault();
+  const l = state.lessons.find(x=>x.id===e.dataTransfer.getData("text/plain"));
+  if (l && l.date!==cell.dataset.date){ noteSkip(l); l.date = cell.dataset.date; save(); }
+  renderAll();
+});
+document.getElementById("week").addEventListener("click", e=>{
+  const row = e.target.closest(".wrow"); if (!row) return;
+  const l = state.lessons.find(x=>x.id===row.dataset.id); if (!l) return;
+  if (e.target.matches("input[type=checkbox]")){ l.done = e.target.checked; save(); renderOverview(); row.classList.toggle("done", l.done); return; }
+  openLesson(l);
+});
+
+/* ================= lesson dialog ================= */
+const dlg = document.getElementById("dlg");
+const fDate=document.getElementById("fDate"), fSub=document.getElementById("fSub"), fUnits=document.getElementById("fUnits"),
+      fContent=document.getElementById("fContent"), fNote=document.getElementById("fNote"), fDone=document.getElementById("fDone");
+let editing = null, draftItems = [];
+
+function openLesson(l, date){
+  if (!state.subjects.length){ alert("Add a subject first, in the Subjects tab."); return; }
+  editing = l || null;
+  document.getElementById("dlgTitle").textContent = l ? "Edit lesson" : "Add lesson";
+  document.getElementById("dlgDelete").hidden = !l;
+  fSub.innerHTML = state.subjects.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("");
+  fDate.value = l ? l.date : date;
+  fSub.value = l ? l.subjectId : state.subjects[0].id;
+  fUnits.value = l ? String(l.units||1) : "1";
+  fNote.value = l ? l.note||"" : "";
+  fDone.checked = l ? !!l.done : false;
+  draftItems = l ? JSON.parse(JSON.stringify(l.items||[])) : [];
+  renderContentField();
+  dlg.showModal();
+}
+fSub.addEventListener("change", ()=>{ draftItems = []; renderContentField(); });
+
+function renderContentField(){
+  const sub = subById(fSub.value);
+  if (sub.kind==="calendar"){ fContent.innerHTML = ""; return; }
+  if (sub.kind==="quran"){
+    fContent.innerHTML = `<label class="field">Ayahs<input type="text" id="fQ" placeholder="e.g. 6:71-110 or 8:41-end" value="${esc(fmtRanges(draftItems))}" autocomplete="off"></label><div class="preview" id="fQp"></div>`;
+    const inp = document.getElementById("fQ"), pv = document.getElementById("fQp");
+    const upd = ()=>{ const {ranges,bad} = parseQuran(inp.value); draftItems = ranges;
+      pv.className = "preview"+(bad.length?" bad":"");
+      pv.textContent = bad.length ? `Couldn't read "${bad.join(", ")}". Use surah:from-to, like 6:71-110.` : (ranges.length ? `${nameRanges(ranges)}, ${qKeys(ranges).length} ayahs` : "Leave empty to plan content later."); };
+    inp.addEventListener("input", upd); upd();
+  } else {
+    const others = {};
+    state.lessons.forEach(l=>{ if (l.subjectId===sub.id && l!==editing) (l.items||[]).forEach(id=>{ if (!others[id] || l.done) others[id] = l; }); });
+    fContent.innerHTML = `<div class="field" style="font-size:.85rem;color:var(--muted)">Topics</div>
+      ${sub.topics.length ? `<div class="topics">${sub.topics.map(t=>{ const o=others[t.id];
+        return `<label><input type="checkbox" value="${t.id}" ${draftItems.includes(t.id)?"checked":""}>${esc(t.title)}${o?`<small>${o.done?"done":"in"} ${fmtD(o.date,{day:"numeric",month:"short"})}</small>`:""}</label>`; }).join("")}</div>`
+        : `<p class="hint" style="margin:0">No topics for ${esc(sub.name)} yet. Add one below, or list them all in Subjects.</p>`}
+      <div class="addtopic"><input type="text" id="fNewTopic" placeholder="New topic" aria-label="New topic"><button type="button" id="fAddTopic">Add topic</button></div>`;
+    fContent.querySelectorAll(".topics input").forEach(cb=>cb.addEventListener("change",()=>{
+      draftItems = [...fContent.querySelectorAll(".topics input:checked")].map(x=>x.value); }));
+    const add = ()=>{ const v = document.getElementById("fNewTopic").value.trim(); if (!v) return;
+      const tp = {id:uid(), title:v}; sub.topics.push(tp); draftItems.push(tp.id); save(); renderContentField(); document.getElementById("fNewTopic").focus(); };
+    document.getElementById("fAddTopic").onclick = add;
+    document.getElementById("fNewTopic").addEventListener("keydown", e=>{ if (e.key==="Enter"){ e.preventDefault(); add(); }});
+  }
+}
+document.getElementById("dlgCancel").onclick = ()=>dlg.close();
+document.getElementById("dlgSave").onclick = ()=>{
+  if (!fDate.value){ fDate.focus(); return; }
+  const data = { date:fDate.value, subjectId:fSub.value, units:+fUnits.value, items:draftItems, note:fNote.value.trim(), done:fDone.checked };
+  if (editing){
+    if (editing.date!==data.date || editing.subjectId!==data.subjectId) noteSkip(editing);
+    Object.assign(editing, data);
+  } else state.lessons.push({ id:uid(), ...data });
+  save(); dlg.close(); renderAll();
+};
+document.getElementById("dlgDelete").onclick = ()=>{
+  if (!editing || !confirm("Delete this lesson?")) return;
+  noteSkip(editing);
+  state.lessons = state.lessons.filter(l=>l!==editing);
+  save(); dlg.close(); renderAll();
+};
+
+/* ================= subjects tab ================= */
+function statusHTML(sub){
+  const inf = info(sub);
+  return `<p class="${inf.cls}"><strong style="font-weight:500">${esc(inf.status)}</strong>${inf.target.length?`<span class="muted">, ${inf.done} of ${unitWord(sub,inf.target.length)} done</span>`:""}</p>${inf.detail.map(d=>`<p class="muted">${esc(d)}</p>`).join("")}`;
+}
+function targetPreview(sub){
+  if (sub.kind==="quran"){ const {ranges,bad} = parseQuran(sub.targetText);
+    return bad.length ? `<span class="warn">Couldn't read "${esc(bad.join(", "))}".</span>` : `${qKeys(ranges).length} ayahs in total`; }
+  const pages = sub.topics.reduce((a,t)=>a+(+t.weight||0),0);
+  return plural(sub.topics.length,"topic") + (pages ? `, about ${Math.round(pages)} pages. Even spreading balances lessons by page count.` : "");
+}
+function renderSubjects(){
+  const el = document.getElementById("subjects");
+  el.innerHTML = state.subjects.map(sub=>`
+    <div class="subj" data-id="${sub.id}" style="--c:${esc(sub.color)}">
+      <div class="subj-head">
+        <input type="text" data-k="name" value="${esc(sub.name)}" aria-label="Subject name">
+        <span class="kind">${sub.kind==="quran"?"Tracked by ayahs":sub.kind==="calendar"?"Calendar only":"Tracked by topics"}</span>
+        <input type="color" data-k="color" value="${esc(sub.color)}" aria-label="Colour">
+      </div>
+      <div class="subj-grid">
+        <div>
+          <div class="field" style="font-size:.85rem;color:var(--muted);margin-bottom:6px">Usual lesson days</div>
+          <div class="days">${WEEK_ORDER.map(d=>`<button type="button" data-day="${d}" aria-pressed="${sub.days.includes(d)}">${DOWS[d]}</button>`).join("")}</div>
+          <div class="row2" style="margin-top:14px">
+            <label class="field">Lessons you expect left<input type="number" min="0" data-k="expected" value="${esc(sub.expected)}" style="width:8rem"></label>
+            ${sub.kind==="calendar" ? "" : `<label class="field">Usual ${sub.kind==="quran"?"ayahs":"topics"} per lesson<input type="number" min="0" step="0.5" data-k="perLesson" value="${esc(sub.perLesson)}" style="width:8rem"></label>`}
+          </div>
+          <label class="field" style="margin-top:14px">Notes<textarea data-k="notes" rows="2" style="min-height:56px" placeholder="Anything to remember about this subject">${esc(sub.notes||"")}</textarea></label>
+        </div>
+        <div ${sub.kind==="calendar"?"hidden":""}>
+          ${sub.kind==="quran"
+            ? `<label class="field">Target ayahs, in the order you'll study them<textarea data-k="targetText" placeholder="e.g. 6:71-end, 7, 8:41-end, 9">${esc(sub.targetText)}</textarea></label>`
+            : `<label class="field">Target topics, one per line, in order<textarea data-k="topics" placeholder="${sub.name==="Quduri"?"Not decided yet? Leave this empty for now.":"One chapter or topic per line"}">${esc(sub.topics.map(t=>t.title).join("\n"))}</textarea></label>`}
+          <div class="small" data-preview>${targetPreview(sub)}</div>
+        </div>
+      </div>
+      <div class="status" data-status ${sub.kind==="calendar"?"hidden":""}>${statusHTML(sub)}</div>
+      <div class="actions">
+        <button data-act="gen">Add lessons on usual days</button>
+        ${sub.kind==="calendar" ? "" : `<button data-act="even">Spread content evenly</button>
+        <button data-act="pace">Plan at usual pace</button>`}
+        <button data-act="clear" class="ghost">Remove upcoming lessons</button>
+        <span style="flex:1"></span>
+        <button data-act="del" class="ghost danger">Delete subject</button>
+      </div>
+      <div class="msg" data-msg aria-live="polite"></div>
+    </div>`).join("") || `<p class="muted">No subjects yet. Add one below.</p>`;
+}
+const subjEl = document.getElementById("subjects");
+function refreshSubCard(card, sub){
+  card.style.setProperty("--c", sub.color);
+  card.querySelector("[data-status]").innerHTML = statusHTML(sub);
+  card.querySelector("[data-preview]").innerHTML = targetPreview(sub);
+}
+subjEl.addEventListener("change", e=>{
+  const card = e.target.closest(".subj"), k = e.target.dataset.k; if (!card || !k) return;
+  const sub = subById(card.dataset.id);
+  if (k==="topics"){
+    const lines = unique(e.target.value.split("\n").map(x=>x.trim()).filter(Boolean));
+    sub.topics = lines.map(title => sub.topics.find(t=>t.title===title) || {id:uid(), title});
+  } else sub[k] = e.target.value;
+  save(); refreshSubCard(card, sub);
+});
+subjEl.addEventListener("input", e=>{ if (e.target.dataset.k==="color"){ const card=e.target.closest(".subj"); card.style.setProperty("--c", e.target.value); }});
+subjEl.addEventListener("click", e=>{
+  const card = e.target.closest(".subj"); if (!card) return;
+  const sub = subById(card.dataset.id), msg = card.querySelector("[data-msg]");
+  const dayBtn = e.target.closest("[data-day]");
+  if (dayBtn){
+    const d = +dayBtn.dataset.day;
+    sub.days = sub.days.includes(d) ? sub.days.filter(x=>x!==d) : [...sub.days, d];
+    dayBtn.setAttribute("aria-pressed", sub.days.includes(d)); save(); return;
+  }
+  const act = e.target.closest("[data-act]")?.dataset.act; if (!act) return;
+  let out = "";
+  if (act==="gen") out = generate(sub);
+  if (act==="even") out = plan(sub,"even");
+  if (act==="pace") out = plan(sub,"pace");
+  if (act==="clear") out = clearUpcoming(sub);
+  if (act==="del"){
+    const n = state.lessons.filter(l=>l.subjectId===sub.id).length;
+    if (!confirm(`Delete ${sub.name}${n?` and its ${plural(n,"lesson")}`:""}?`)) return;
+    state.subjects = state.subjects.filter(s=>s!==sub);
+    state.lessons = state.lessons.filter(l=>l.subjectId!==sub.id);
+    save(); renderAll(); return;
+  }
+  const again = document.querySelector(`.subj[data-id="${sub.id}"] [data-msg]`);
+  if (again && out) again.textContent = out;
+});
+document.getElementById("addSubBtn").onclick = ()=>{
+  const kind = document.getElementById("newKind").value;
+  const used = state.subjects.map(s=>s.color);
+  state.subjects.push(newSubject("New subject", kind, COLORS.find(c=>!used.includes(c)) || COLORS[state.subjects.length % COLORS.length]));
+  save(); renderAll();
+  const inp = document.querySelector(".subj:last-child input[data-k=name]"); if (inp){ inp.focus(); inp.select(); }
+};
+
+/* ================= setup tab ================= */
+function renderSetup(){
+  const s = state.settings;
+  document.getElementById("setup").innerHTML = `
+    <div>
+      <h2>Dates</h2>
+      <p class="hint">Lessons are added between these dates when you use "Add lessons on usual days".</p>
+      <div class="row2">
+        <label class="field">Planning from<input type="date" id="sStart" value="${esc(s.start)}"></label>
+        <label class="field">Target finish date<input type="date" id="sTarget" value="${esc(s.target)}"></label>
+      </div>
+    </div>
+    <div>
+      <h2>Weeks with no lessons</h2>
+      <p class="hint">Holidays and breaks. Usual-day lessons skip these, and any lesson you place in one is outlined in red.</p>
+      ${state.breaks.length ? state.breaks.slice().sort((a,b)=>a.from.localeCompare(b.from)).map(b=>`
+        <div class="brk-row"><span>${fmtD(b.from,{day:"numeric",month:"short",year:"numeric"})}</span><span>to ${fmtD(b.to,{day:"numeric",month:"short",year:"numeric"})}</span><span class="muted">${esc(b.label||"")}</span><button class="ghost danger" data-rmbrk="${b.id}">Remove</button></div>`).join("")
+        : `<p class="muted" style="font-size:.9rem">No breaks added.</p>`}
+      <div class="brk-add">
+        <label class="field">From<input type="date" id="bFrom"></label>
+        <label class="field">To<input type="date" id="bTo"></label>
+        <label class="field" style="flex:1;min-width:140px">Name<input type="text" id="bLabel" placeholder="e.g. Half term"></label>
+        <button id="bAdd">Add break</button>
+      </div>
+      <div class="msg" id="bMsg" aria-live="polite"></div>
+    </div>
+    <div>
+      <h2>Backup</h2>
+      <p class="hint">${sync.token && sync.gistId ? "Your plan syncs through GitHub. A downloaded backup is still a good extra copy." : "Your plan is saved in this browser only. Download a backup to keep it safe, or turn on sync below."}</p>
+      <div class="row2">
+        <button id="expBtn">Download backup</button>
+        <button id="impBtn">Restore backup</button>
+        <input type="file" id="impFile" accept="application/json" hidden>
+        <span style="flex:1"></span>
+        <button class="ghost danger" id="resetBtn">Reset everything</button>
+      </div>
+      <div class="msg" id="backupMsg" aria-live="polite"></div>
+    </div>
+    <div>
+      <h2>Sync across devices</h2>
+      ${sync.token && sync.gistId ? `
+        <p class="hint">This device is connected. Changes save to your private GitHub gist and load on your other devices.</p>
+        <div class="row2"><button id="syncNow">Sync now</button><button class="ghost danger" id="syncOff">Disconnect this device</button></div>`
+      : `
+        <ol class="steps">
+          <li><a href="https://github.com/settings/tokens/new?scopes=gist&description=Study%20planner%20sync" target="_blank" rel="noopener">Create a GitHub token</a> with only the <strong>gist</strong> box ticked. Set the expiry to a year or "No expiration".</li>
+          <li>Copy the token and paste it below, then press Connect.</li>
+          <li>Do the same on each device, pasting the same token.</li>
+        </ol>
+        <div class="row2" style="align-items:flex-end">
+          <label class="field" style="flex:1;min-width:220px">GitHub token<input type="password" id="tokenIn" autocomplete="off" placeholder="ghp_…"></label>
+          <button class="primary" id="syncOn">Connect</button>
+        </div>`}
+      <div class="msg" id="syncMsg" aria-live="polite">${esc(syncMsg)}</div>
+    </div>`;
+  const on = document.getElementById("syncOn");
+  if (on) on.onclick = ()=>{ const v = document.getElementById("tokenIn").value.trim(); if (!v){ setSyncStatus("err","Paste your token first."); return; } connect(v); };
+  const now = document.getElementById("syncNow"); if (now) now.onclick = ()=>pull(true);
+  const off = document.getElementById("syncOff");
+  if (off) off.onclick = ()=>{ if (!confirm("Stop syncing on this device? Your plan stays here and in the gist.")) return; sync = {token:"",gistId:""}; saveSync(); setSyncStatus("off",""); renderSetup(); };
+  document.getElementById("sStart").onchange = e=>{ s.start = e.target.value; save(); renderOverview(); };
+  document.getElementById("sTarget").onchange = e=>{ s.target = e.target.value; save(); renderOverview(); };
+  document.querySelectorAll("[data-rmbrk]").forEach(b=>b.onclick = ()=>{ state.breaks = state.breaks.filter(x=>x.id!==b.dataset.rmbrk); save(); renderAll(); });
+  document.getElementById("bAdd").onclick = ()=>{
+    const f = document.getElementById("bFrom").value, t = document.getElementById("bTo").value || f, lab = document.getElementById("bLabel").value.trim();
+    if (!f){ document.getElementById("bMsg").textContent = "Choose a start date for the break."; return; }
+    const [from,to] = [f,t].sort();
+    state.breaks.push({id:uid(), from, to, label:lab});
+    const clash = state.lessons.filter(l=>l.date>=from && l.date<=to).length;
+    save(); renderAll();
+    document.getElementById("bMsg").textContent = clash ? `Break added. ${plural(clash,"lesson")} already in it ${clash===1?"is":"are"} outlined in red; move or delete them in the calendar.` : "Break added.";
+  };
+  document.getElementById("expBtn").onclick = ()=>{
+    const blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `study-plan-${todayStr()}.json`;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  };
+  const impFile = document.getElementById("impFile");
+  document.getElementById("impBtn").onclick = ()=>impFile.click();
+  impFile.onchange = ()=>{
+    const f = impFile.files[0]; if (!f) return;
+    f.text().then(t=>{ const p = JSON.parse(t); if (!Array.isArray(p.subjects) || !Array.isArray(p.lessons)) throw 0;
+      state = p; save(); renderAll(); document.getElementById("backupMsg").textContent = "Backup restored."; })
+     .catch(()=>{ document.getElementById("backupMsg").textContent = "That file isn't a planner backup. Choose a .json file made with Download backup."; });
+  };
+  document.getElementById("resetBtn").onclick = ()=>{
+    if (!confirm("Reset everything? Download a backup first if you might want it back.")) return;
+    state = defaultState(); save(); renderAll(); document.getElementById("backupMsg").textContent = "Planner reset.";
+  };
+}
+
+/* ================= sync (GitHub gist) ================= */
+const SKEY = "study-planner-sync", FILE = "study-planner.json";
+let sync = {token:"", gistId:""};
+try { Object.assign(sync, JSON.parse(localStorage.getItem(SKEY)||"{}")); } catch(e) {}
+const saveSync = () => { try { localStorage.setItem(SKEY, JSON.stringify(sync)); } catch(e) {} };
+let syncMsg = "", busy = false, again = false, pushTimer = null;
+const clock = () => new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+function setSyncStatus(s, msg){
+  syncMsg = msg;
+  const el = document.getElementById("syncStatus");
+  el.hidden = !(sync.token && sync.gistId) || s==="off";
+  el.dataset.s = s;
+  el.textContent = s==="ok" ? "Synced" : s==="busy" ? "Syncing" : s==="err" ? "Not synced" : "";
+  el.title = msg;
+  const m = document.getElementById("syncMsg"); if (m) m.textContent = msg;
+}
+async function gh(path, opts={}){
+  const r = await fetch("https://api.github.com"+path, {...opts, cache:"no-store", headers:{
+    Authorization:"Bearer "+sync.token, Accept:"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28",
+    ...(opts.body ? {"Content-Type":"application/json"} : {}) }});
+  if (!r.ok){ const e = new Error("GitHub "+r.status); e.status = r.status; throw e; }
+  return r.json();
+}
+async function readGist(){
+  const g = await gh("/gists/"+sync.gistId);
+  const f = g.files && g.files[FILE];
+  if (!f){ const e = new Error("missing"); e.status = 404; throw e; }
+  const txt = f.truncated ? await (await fetch(f.raw_url, {cache:"no-store"})).text() : f.content;
+  return JSON.parse(txt);
+}
+const writeGist = () => gh("/gists/"+sync.gistId, {method:"PATCH", body:JSON.stringify({files:{[FILE]:{content:JSON.stringify(state)}}})});
+function applyRemote(s){
+  if (!s || !Array.isArray(s.subjects) || !Array.isArray(s.lessons)) return;
+  state = s; saveLocal(); renderAll();
+}
+function syncError(e){
+  if (!navigator.onLine || !e.status) setSyncStatus("err","Offline. Your changes are saved on this device and will sync when you're back online.");
+  else if (e.status===401) setSyncStatus("err","GitHub didn't accept the token. Disconnect and connect again with a new token.");
+  else if (e.status===404) setSyncStatus("err","The sync gist couldn't be found. Disconnect and connect again.");
+  else setSyncStatus("err",`Sync failed (GitHub error ${e.status}). It will try again shortly.`);
+}
+async function pull(force){
+  if (!sync.token || !sync.gistId) return;
+  if (busy || (dlg.open && !force)) return;
+  busy = true; setSyncStatus("busy","Checking for changes…");
+  try {
+    const remote = await readGist();
+    const r = remote.updatedAt||0, l = state.updatedAt||0;
+    if (r > l){ applyRemote(remote); setSyncStatus("ok",`Loaded the latest changes at ${clock()}.`); }
+    else if (l > r){ await writeGist(); setSyncStatus("ok",`Synced at ${clock()}.`); }
+    else setSyncStatus("ok",`Up to date at ${clock()}.`);
+  } catch(e){ syncError(e); }
+  finally { busy = false; if (again){ again = false; push(); } }
+}
+async function push(){
+  if (!sync.token || !sync.gistId) return;
+  if (busy){ again = true; return; }
+  busy = true; setSyncStatus("busy","Saving…");
+  try {
+    const remote = await readGist();
+    if ((remote.updatedAt||0) > (state.updatedAt||0)){ applyRemote(remote); setSyncStatus("ok","Another device saved newer changes, so those were loaded."); }
+    else { await writeGist(); setSyncStatus("ok",`Synced at ${clock()}.`); }
+  } catch(e){ syncError(e); }
+  finally { busy = false; if (again){ again = false; push(); } }
+}
+function schedulePush(){
+  if (!sync.token || !sync.gistId) return;
+  setSyncStatus("busy","Waiting to save…");
+  clearTimeout(pushTimer); pushTimer = setTimeout(push, 1500);
+}
+async function connect(token){
+  sync = {token, gistId:""};
+  setSyncStatus("busy","Connecting to GitHub…");
+  try {
+    let found = null;
+    for (let page=1; page<=10 && !found; page++){
+      const list = await gh(`/gists?per_page=100&page=${page}`);
+      found = list.find(g => g.files && g.files[FILE]);
+      if (list.length < 100) break;
+    }
+    if (found){
+      sync.gistId = found.id;
+      const remote = await readGist();
+      const when = new Date(remote.updatedAt || Date.parse(found.updated_at)).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+      const useRemote = !state.lessons.length || confirm(`Found your synced plan, last saved ${when}.\n\nOK: use the synced plan on this device.\nCancel: overwrite the synced plan with the plan on this device.`);
+      if (useRemote) applyRemote(remote);
+      else { state.updatedAt = Date.now(); saveLocal(); await writeGist(); }
+    } else {
+      state.updatedAt = state.updatedAt || Date.now(); saveLocal();
+      const g = await gh("/gists", {method:"POST", body:JSON.stringify({description:"Study planner data (synced)", public:false, files:{[FILE]:{content:JSON.stringify(state)}}})});
+      sync.gistId = g.id;
+    }
+    saveSync(); renderAll();
+    setSyncStatus("ok", found ? "Connected. This device is now in sync." : "Connected. Your plan is saved to a new private gist. Connect your other devices with the same token.");
+  } catch(e){
+    sync = {token:"", gistId:""}; saveSync();
+    setSyncStatus("off", e.status===401 ? "That token didn't work. Check you ticked the gist box and copied all of it." : "Couldn't reach GitHub. Check your connection and try again.");
+    renderSetup();
+  }
+}
+document.addEventListener("visibilitychange", ()=>{ if (document.visibilityState==="visible") pull(); });
+window.addEventListener("online", ()=>pull());
+setInterval(()=>{ if (document.visibilityState==="visible") pull(); }, 120000);
+
+/* ================= render ================= */
+function renderAll(){
+  if (tab==="calendar"){ renderOverview(); renderCalendar(); }
+  if (tab==="subjects") renderSubjects();
+  if (tab==="setup") renderSetup();
+}
+renderAll();
+if (sync.token && sync.gistId){ setSyncStatus("busy","Checking for changes…"); pull(); }
+</script>
+</body>
+</html>
